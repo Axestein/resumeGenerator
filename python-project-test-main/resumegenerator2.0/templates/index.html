@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Generator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Generate Your Resume</h1>
+        <form id="resumeForm">
+            <div class="form-group">
+                <label for="personal_summary">Personal Summary:</label>
+                <textarea id="personal_summary" name="personal_summary" rows="4" required></textarea>
+            </div>
+            <div id="experience_container">
+                 <h2>Experience</h2>
+                <div class="experience-entry">
+                 <div class="form-group">
+                     <label for="job_title_input">Job Title:</label>
+                     <input type="text" id="job_title_input" name="job_title" required>
+                </div>
+                <div class="form-group">
+                    <label for="company_input">Company:</label>
+                    <input type="text" id="company_input" name="company" required>
+                </div>
+                <div class="form-group">
+                    <label for="dates_input">Dates:</label>
+                    <input type="text" id="dates_input" name="dates" required>
+                </div>
+                 <div class="form-group">
+                    <label for="responsibilities_input">Responsibilities:</label>
+                    <textarea id="responsibilities_input" name="responsibilities" rows="3" required></textarea>
+                </div>
+            </div>
+            <button type="button" onclick="addExperience()">Add Experience</button>
+           </div>
+
+           <div id="education_container">
+                 <h2>Education</h2>
+                <div class="education-entry">
+                     <div class="form-group">
+                     <label for="degree_input">Degree:</label>
+                    <input type="text" id="degree_input" name="degree" required>
+                </div>
+                <div class="form-group">
+                    <label for="university_input">University:</label>
+                    <input type="text" id="university_input" name="university" required>
+                </div>
+                <div class="form-group">
+                    <label for="dates_education_input">Dates:</label>
+                   <input type="text" id="dates_education_input" name="dates" required>
+                </div>
+            </div>
+            <button type="button" onclick="addEducation()">Add Education</button>
+            </div>
+
+           <div class="form-group">
+            <label for="skills">Skills:</label>
+            <input type="text" id="skills" name="skills" required placeholder="Enter skills separated by commas" >
+           </div>
+        <button type="submit">Generate Resume</button>
+        </form>
+
+        <div id="resumeOutput">
+           
+        </div>
+        <div id="errorMessage" style="color: red;"></div>
+    </div>
+     <script>
+        document.getElementById('resumeForm').addEventListener('submit', function(event) {
+                event.preventDefault(); // Prevent default form submission
+                 
+                 const personal_summary = document.getElementById('personal_summary').value;
+                 const experienceEntries = document.querySelectorAll('#experience_container .experience-entry');
+                 const educationEntries = document.querySelectorAll('#education_container .education-entry');
+                 const skills = document.getElementById('skills').value.split(',').map(skill => skill.trim());
+
+
+                 const experience = Array.from(experienceEntries).map(entry => ({
+                     job_title: entry.querySelector('[name="job_title"]').value,
+                     company: entry.querySelector('[name="company"]').value,
+                     dates: entry.querySelector('[name="dates"]').value,
+                     responsibilities: entry.querySelector('[name="responsibilities"]').value
+                 }));
+
+                const education = Array.from(educationEntries).map(entry => ({
+                    degree: entry.querySelector('[name="degree"]').value,
+                    university: entry.querySelector('[name="university"]').value,
+                    dates: entry.querySelector('[name="dates"]').value,
+                }));
+              
+            
+               const payload = {
+                  personal_summary: personal_summary,
+                  experience: experience,
+                  education: education,
+                  skills: skills
+                 };
+    
+               fetch('/generate_resume', {
+                   method: 'POST',
+                   headers: {
+                       'Content-Type': 'application/json',
+                     },
+                   body: JSON.stringify(payload)
+                 })
+                .then(response => {
+                   if (!response.ok){
+                     return response.json().then(errorData => {throw new Error(errorData.error|| `HTTP error! status: ${response.status}`);});
+                    }
+                    return response.json();
+                    })
+               .then(data => {
+                   if(data.status === 'success'){
+                        document.getElementById('resumeOutput').innerHTML = `<pre>${data.resume}</pre>`;
+                        document.getElementById('errorMessage').textContent = "";
+                     } else {
+                        document.getElementById('resumeOutput').innerHTML = "";
+                         document.getElementById('errorMessage').textContent = data.error || 'Failed to generate resume';
+                     }
+                   })
+                  .catch(error => {
+                    console.error('Error generating resume:', error);
+                     document.getElementById('resumeOutput').innerHTML = "";
+                     document.getElementById('errorMessage').textContent = error.message || 'An error occurred, check console for details';
+                     });
+        });
+      function addExperience() {
+            const container = document.getElementById('experience_container');
+            const newEntry = document.createElement('div');
+            newEntry.classList.add('experience-entry');
+            const uniqueId = Date.now()
+            newEntry.innerHTML = `
+             <div class="form-group">
+                    <label for="job_title_${uniqueId}">Job Title:</label>
+                    <input type="text" id="job_title_${uniqueId}" name="job_title" required>
+                </div>
+                <div class="form-group">
+                    <label for="company_${uniqueId}">Company:</label>
+                    <input type="text" id="company_${uniqueId}" name="company" required>
+                </div>
+                <div class="form-group">
+                    <label for="dates_${uniqueId}">Dates:</label>
+                    <input type="text" id="dates_${uniqueId}" name="dates" required>
+                </div>
+                 <div class="form-group">
+                    <label for="responsibilities_${uniqueId}">Responsibilities:</label>
+                    <textarea  id="responsibilities_${uniqueId}" name="responsibilities" rows="3" required></textarea>
+                </div>
+                <button type="button" onclick="removeEntry(this)">Remove</button>
+            `;
+          container.appendChild(newEntry);
+        }
+      function addEducation() {
+             const container = document.getElementById('education_container');
+             const newEntry = document.createElement('div');
+             newEntry.classList.add('education-entry');
+              const uniqueId = Date.now()
+            newEntry.innerHTML = `
+            <div class="form-group">
+                    <label for="degree_${uniqueId}">Degree:</label>
+                    <input type="text" id="degree_${uniqueId}" name="degree" required>
+                </div>
+                <div class="form-group">
+                    <label for="university_${uniqueId}">University:</label>
+                    <input type="text" id="university_${uniqueId}" name="university" required>
+                </div>
+                <div class="form-group">
+                    <label for="dates_${uniqueId}">Dates:</label>
+                   <input type="text" id="dates_${uniqueId}" name="dates" required>
+                </div>
+                  <button type="button" onclick="removeEntry(this)">Remove</button>
+             `;
+             container.appendChild(newEntry);
+        }
+        function removeEntry(button) {
+             button.closest('.experience-entry, .education-entry').remove();
+        }
+    </script>
+</body>
+</html>
